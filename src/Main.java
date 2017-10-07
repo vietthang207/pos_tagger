@@ -5,7 +5,7 @@ public class Main {
 	public static void main(String args[]) throws IOException {
 		getAllTagsFromTrainingSet();
 		//System.out.println(Util.getWordAndTag("blabla/BLAM")[0]);
-
+		
 	}
 
 	private static void getAllTagsFromTrainingSet() throws IOException {
