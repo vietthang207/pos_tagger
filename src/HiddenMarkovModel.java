@@ -2,16 +2,16 @@ import java.util.HashMap;
 import java.util.ArrayList;
 
 public class HiddenMarkovModel {
-	private HashMap<Tag, Integer> nodeIndex;
+	private HashMap<String, Integer> nodeIndex;
 	private int numTags;
 	private int[][] transitionCountMatrix;
 	private double[][] transitionProbabilityMatrix;
 	private ArrayList<HashMap<String, Double>> emissionProbabilities;
 
 	public HiddenMarkovModel() {
-		nodeIndex = new HashMap<Tag, Integer>();
+		nodeIndex = new HashMap<String, Integer>();
 		int count = 0;
-		for (Tag t: Tag.values()) {
+		for (String t: Util.getTagList()) {
 			nodeIndex.put(t, count);
 			count++;
 		}
@@ -23,7 +23,7 @@ public class HiddenMarkovModel {
 		}
 	}
 
-	private int index(Tag tag) {
+	private int index(String tag) {
 		return nodeIndex.get(tag);
 	}
 
@@ -36,7 +36,7 @@ public class HiddenMarkovModel {
 	}
 
 	private double emissionProbability(int state, String word) {
-		if (!emissionProbabilities.get(state).contains(word)) {
+		if (!emissionProbabilities.get(state).containsKey(word)) {
 			// TODO: unknown word
 		}
 		return emissionProbabilities.get(state).get(word);

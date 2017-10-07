@@ -1,2 +1,6 @@
 *.class
-
+data
+*.train
+*.test
+*.devt
+*.out
