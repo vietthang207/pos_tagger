@@ -1,11 +1,11 @@
 
 public class Node {
 	private Tag tag;
-	private HashMap<Token, Double> emissionProbabilities;
+	private HashMap<String, Double> emissionProbabilities;
 
 	public Node(Tag tag) {
 		this.tag = tag;
-		emissionProbabilities = new HashMap<Token, Double>();
+		emissionProbabilities = new HashMap<String, Double>();
 	}
 }
 
@@ -13,7 +13,7 @@ class Token {
 	private TokenType type;
 	private String word;
 
-	public Word(WordType type, String word) {
+	public Token (WordType type, String word) {
 		this.type = type;
 		this.word = word;
 	}
@@ -32,6 +32,3 @@ enum TokenType {
 	NORMAL, UNKNOWN
 }
 
-enum Tag {
-	PRP, RB
-}
