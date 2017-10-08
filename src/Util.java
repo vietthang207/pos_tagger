@@ -18,6 +18,10 @@ public class Util {
 		return res;
 
 	}
+
+	public static String[] tokenizeLine(String line) {
+		return line.split(" ");
+	}
 	public static String[] getTagList() {
 		String[] tagList = {"START",
 							"CC", "CD", "DT", "EX",
@@ -30,7 +34,7 @@ public class Util {
 							"VBG", "VBN", "VBP", "VBZ",
 							"WDT", "WP", "WP$", "WRB",
 							"$", "#", "``", "''", 
-							"-LRB", "-RRB", ",", ".", ":",
+							"-LRB-", "-RRB-", ",", ".", ":",
 							"END"};
 		return tagList;
 	}

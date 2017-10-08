@@ -27,7 +27,7 @@ public class HiddenMarkovModel {
 		transitionProbabilityMatrix = new double[count][count];
 		emissionCount = new ArrayList<HashMap<String, Integer>>();
 		emissionProbabilities = new ArrayList<HashMap<String, Double>>();
-		for (int i = 0; i < count; i++) {
+		for (int i = 0; i < numTags; i++) {
 			emissionCount.add(new HashMap<String, Integer>());
 			emissionProbabilities.add(new HashMap<String, Double>());
 		}
@@ -91,8 +91,11 @@ public class HiddenMarkovModel {
 
 	public void calculateEmissionProbNaive() {
 		emissionProbabilities = new ArrayList<HashMap<String, Double>>();
+		for (int i = 0; i < numTags; i++) {
+			emissionProbabilities.add(new HashMap<String, Double>());
+		}
 		if (debug) {
-			System.out.print("tags.length = " + tags.length);
+			System.out.println("tags.length = " + tags.length);
 		}
 		for (int i=0; i<tags.length; i++) {
 			int sum = 0;
@@ -108,14 +111,18 @@ public class HiddenMarkovModel {
 
 	public void calculateTransitionProbNaive() {
 		if (debug) {
-			System.out.print("tags.length = " + tags.length);
+			System.out.println("tags.length = " + tags.length);
 		}
+
 		for (int i=0; i<tags.length; i++) {
 			int sum = 0;
 			for (int j=0; j<tags.length; j++) {
 				sum += transitionCountMatrix[i][j];
 			}
 			for (int j=0; j<tags.length; j++) {
+				if ( j==0 || i==tags.length-1) {
+					continue;
+				}
 				transitionProbabilityMatrix[i][j] = transitionCountMatrix[i][j]*1.0 / sum;
 			}
 		}
@@ -125,14 +132,17 @@ public class HiddenMarkovModel {
 		int n = words.length + 2;
 		double[][] dp = new double[n][numTags];
 		int[][] trace = new int[n][numTags];
-		dp[0][0] = 1;
+		for (int i=0; i<n; i++) {
+			for (int j=0; j<numTags; j++) {
+				dp[i][j] = Double.NEGATIVE_INFINITY;
+			}
+		}
+		dp[0][0] = 0;
 		for (int i=1; i<n-1; i++) {
 			for (int j=0; j<numTags; j++) {
-				dp[i][j] = -1;
-				trace[i][j] = -1;
 				double b = getEmissionProbability(j, words[i-1]);
 				for (int k=0; k<numTags; k++) {
-					double tmp = dp[i-1][k] * getTransitionProbability(k, j) * b;
+					double tmp = dp[i-1][k] + Math.log(getTransitionProbability(k, j) * b);
 					if (tmp > dp[i][j]) {
 						dp[i][j] = tmp;
 						trace[i][j] = k;
@@ -140,15 +150,27 @@ public class HiddenMarkovModel {
 				}
 			}
 		}
-		dp[n-1][numTags-1] = -1;
-		trace[n-1][numTags-1] = -1;
 		for (int k = 0; k<numTags; k++) {
-			double tmp = dp[n-1][k] * getTransitionProbability(k, numTags-1);
+			double tmp = dp[n-2][k] + Math.log(getTransitionProbability(k, numTags-1));
 			if (tmp > dp[n-1][numTags-1]) {
 				dp[n-1][numTags-1] = tmp;
 				trace[n-1][numTags-1] = k;
 			}
 		}
+		// for (int i=0; i<n; i++) {
+		// 	for (int j=0; j<numTags; j++) {
+		// 		if (dp[i][j] > Double.NEGATIVE_INFINITY) System.out.printf("%2.0f ", dp[i][j]);
+		// 		else System.out.printf("bla ");
+		// 	}
+		// 	System.out.println();
+		// }
+		// for (int i=numTags-1; i<numTags; i++) {
+		// 	for (int j=0; j<numTags; j++) {
+		// 		System.out.print(transitionProbabilityMatrix[i][j] + " ");
+		// 	}
+		// 	System.out.println();
+		// }
+
 		int[] res = new int[words.length];
 		int cur = numTags - 1;
 		for (int i=0; i<words.length; i++) {
@@ -160,6 +182,17 @@ public class HiddenMarkovModel {
 			ret[i] = tags[res[words.length-1-i]];
 		}
 		return ret;
+	}
+
+	public double calculateLikelihood(String[] words, String[] tagList) {
+		double res = getTransitionProbability(index(tags[0]), index(tagList[0]));
+		res *= getEmissionProbability(index(tagList[0]), words[0]);
+		for (int i=1; i<words.length; i++) {
+			res *= getEmissionProbability(index(tagList[i]), words[i]);
+			res *= getTransitionProbability(index(tagList[i-1]), index(tagList[i]));
+		}
+		res *= getTransitionProbability(index(tagList[tagList.length-1]), numTags-1);
+		return Math.log(res);
 	}
 }
 
