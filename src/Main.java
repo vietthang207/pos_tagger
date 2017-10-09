@@ -11,6 +11,7 @@ public class Main {
 		model.calculateEmissionProbWittenBell();
 		// model.calculateTransitionProbNaive();
 		model.calculateTransitionProbWittenBell();
+		model.calculateCapitalProbability();
 		System.out.println("finish calculating emission and transition prob");
 		System.out.println("Training accuracy: " + getAccuracyOnFile(model, "sents.train"));
 		System.out.println("Accuracy on dev set: " + getAccuracyOnFile(model, "sents.devt"));

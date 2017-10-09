@@ -13,6 +13,10 @@ public class HiddenMarkovModel {
 	private ArrayList<HashMap<String, Integer>> emissionCount;
 	private int[] emissionSum;
 	private ArrayList<HashMap<String, Double>> emissionProbabilities;
+	private int[] upperCaseCount;
+	private int[] lowerCaseCount;
+	private double[] upperCaseProbability;
+	private double[] lowerCaseProbability;
 	private boolean debug = true;
 
 	public HiddenMarkovModel() {
@@ -34,6 +38,10 @@ public class HiddenMarkovModel {
 			emissionProbabilities.add(new HashMap<String, Double>());
 		}
 		emissionSum = new int[numTags];
+		upperCaseCount = new int[numTags];
+		lowerCaseCount = new int[numTags];
+		upperCaseProbability = new double[numTags];
+		lowerCaseProbability = new double[numTags];
 	}
 
 	public int index(String tag) {
@@ -62,6 +70,11 @@ public class HiddenMarkovModel {
 		return emissionProbabilities.get(state).get(word);
 	}
 
+	private double getCapitalProb(int state, String word) {
+		if (Character.isLowerCase(word.charAt(0))) return lowerCaseProbability[state];
+		return upperCaseProbability[state];
+	}
+
 	private void addVocabulary(String word) {
 		vocabulary.add(word);
 	}
@@ -83,6 +96,14 @@ public class HiddenMarkovModel {
 		transitionCountMatrix[i1][i2]++;
 	}
 
+	private void addCapitalCount(String tag, String word) {
+		int ind = index(tag);
+		if (Character.isLowerCase(word.charAt(0))) {
+			lowerCaseCount[ind] ++;
+		}
+		else upperCaseCount[ind] ++;
+	}
+
 	public void processTrainingSample(String line) {
 		TaggedWord[] taggedWords = Util.segmentLineIntoTaggedWord(line);
 		addTransitionCount(Constant.TAG_START, taggedWords[0].getTag());
@@ -93,8 +114,11 @@ public class HiddenMarkovModel {
 			else {
 				addTransitionCount(taggedWords[i].getTag(), taggedWords[i+1].getTag());
 			}
-			addVocabulary(taggedWords[i].getWord());
-			addEmissionCount(taggedWords[i].getTag(), taggedWords[i].getWord());
+			String word = taggedWords[i].getWord();
+			String tag = taggedWords[i].getTag();
+			addVocabulary(word);
+			addEmissionCount(tag, word);
+			addCapitalCount(tag, word);
 		}
 		vocabSize = vocabulary.size();
 	}
@@ -181,6 +205,13 @@ public class HiddenMarkovModel {
 		}
 	}
 
+	public void calculateCapitalProbability() {
+		for (int i=1; i<numTags-1; i++) {
+			lowerCaseProbability[i] = lowerCaseCount[i] * 1.0 / (lowerCaseCount[i] + upperCaseCount[i]);
+			upperCaseProbability[i] = upperCaseCount[i] * 1.0 / (lowerCaseCount[i] + upperCaseCount[i]);
+		}
+	}
+
 	public String[] runViterbi(String[] words) {
 		int n = words.length + 2;
 		double[][] dp = new double[n][numTags];
@@ -193,7 +224,7 @@ public class HiddenMarkovModel {
 		dp[0][0] = 0;
 		for (int i=1; i<n-1; i++) {
 			for (int j=0; j<numTags; j++) {
-				double b = getEmissionProbability(j, words[i-1]);
+				double b = getEmissionProbability(j, words[i-1]) * getCapitalProb(j, words[i-1]);
 				for (int k=0; k<numTags; k++) {
 					double tmp = dp[i-1][k] + Math.log(getTransitionProbability(k, j) * b);
 					if (tmp > dp[i][j]) {
