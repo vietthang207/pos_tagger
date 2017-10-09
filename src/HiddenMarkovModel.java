@@ -7,6 +7,7 @@ public class HiddenMarkovModel {
 	private String[] tags;
 	private int numTags;
 	private HashSet<String> vocabulary;
+	private int vocabSize;
 	private int[][] transitionCountMatrix;
 	private double[][] transitionProbabilityMatrix;
 	private ArrayList<HashMap<String, Integer>> emissionCount;
@@ -53,7 +54,7 @@ public class HiddenMarkovModel {
 			// TODO: unknown word
 			int T = emissionProbabilities.get(state).size();
 			// +1 for unknown word
-			int Z = vocabulary.size() - T + 1;
+			int Z = vocabSize - T + 1;
 			int C = emissionSum[state];
 			return T*1.0/(Z*(C+T));
 
@@ -95,6 +96,7 @@ public class HiddenMarkovModel {
 			addVocabulary(taggedWords[i].getWord());
 			addEmissionCount(taggedWords[i].getTag(), taggedWords[i].getWord());
 		}
+		vocabSize = vocabulary.size();
 	}
 
 	public void calculateEmissionProbNaive() {
@@ -150,6 +152,31 @@ public class HiddenMarkovModel {
 					continue;
 				}
 				transitionProbabilityMatrix[i][j] = transitionCountMatrix[i][j]*1.0 / sum;
+			}
+		}
+	}
+
+	public void calculateTransitionProbWittenBell() {
+		for (int i=0; i<tags.length-1; i++) {
+			int sum = 0;
+			int T = 0;
+			for (int j=0; j<tags.length; j++) {
+				sum += transitionCountMatrix[i][j];
+				if (transitionCountMatrix[i][j] > 0) T++;
+			}
+			int Z;
+			if (i==0) Z = numTags -2 - T;
+			else Z = numTags-1 - T;
+			for (int j=0; j<tags.length; j++) {
+				if ( j==0 || i==tags.length-1) {
+					continue;
+				}
+				if (transitionCountMatrix[i][j] > 0) {
+					transitionProbabilityMatrix[i][j] = transitionCountMatrix[i][j]*1.0 / (sum + T);
+				}
+				else {
+					transitionProbabilityMatrix[i][j] = T*1.0/(Z*(sum+T));
+				}
 			}
 		}
 	}

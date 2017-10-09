@@ -7,10 +7,12 @@ public class Main {
 		//System.out.println(Util.getWordAndTag("blabla/BLAM")[0]);
 		// System.out.println(Math.log(0.0) + 10000);
 		HiddenMarkovModel model = trainOn("sents.train");
-		model.calculateEmissionProbNaive();
-		model.calculateTransitionProbNaive();
+		// model.calculateEmissionProbNaive();
+		model.calculateEmissionProbWittenBell();
+		// model.calculateTransitionProbNaive();
+		model.calculateTransitionProbWittenBell();
 		System.out.println("finish calculating emission and transition prob");
-		// System.out.println("Training accuracy: " + getAccuracyOnFile(model, "sents.train"));
+		System.out.println("Training accuracy: " + getAccuracyOnFile(model, "sents.train"));
 		System.out.println("Accuracy on dev set: " + getAccuracyOnFile(model, "sents.devt"));
 		double[][] confusionMat = getConfusionTableOnFile(model, "sents.devt");
 		printConfusionMatrix(confusionMat);
