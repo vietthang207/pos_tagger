@@ -11,8 +11,8 @@ public class Main {
 		model.calculateTransitionProbNaive();
 		System.out.println("finish calculating emission and transition prob");
 		// System.out.println("Training accuracy: " + getAccuracyOnFile(model, "sents.train"));
-		// System.out.println("Accuracy on dev set: " + getAccuracyOnFile(model, "sents.devt"));
-		double[][] confusionMat = getConfusionTableOnFile(model, "sents.train");
+		System.out.println("Accuracy on dev set: " + getAccuracyOnFile(model, "sents.devt"));
+		double[][] confusionMat = getConfusionTableOnFile(model, "sents.devt");
 		printConfusionMatrix(confusionMat);
 		// String[] res = model.runViterbi(Util.tokenizeLine("I am all alone , the rooms are getting smaller ."));
 		// for (String s: res) {

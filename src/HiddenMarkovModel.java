@@ -10,6 +10,7 @@ public class HiddenMarkovModel {
 	private int[][] transitionCountMatrix;
 	private double[][] transitionProbabilityMatrix;
 	private ArrayList<HashMap<String, Integer>> emissionCount;
+	private int[] emissionSum;
 	private ArrayList<HashMap<String, Double>> emissionProbabilities;
 	private boolean debug = true;
 
@@ -31,6 +32,7 @@ public class HiddenMarkovModel {
 			emissionCount.add(new HashMap<String, Integer>());
 			emissionProbabilities.add(new HashMap<String, Double>());
 		}
+		emissionSum = new int[numTags];
 	}
 
 	public int index(String tag) {
@@ -49,7 +51,12 @@ public class HiddenMarkovModel {
 		if (state==0 || state== numTags-1) return 0;
 		if (!emissionProbabilities.get(state).containsKey(word)) {
 			// TODO: unknown word
-			return 0;
+			int T = emissionProbabilities.get(state).size();
+			// +1 for unknown word
+			int Z = vocabulary.size() - T + 1;
+			int C = emissionSum[state];
+			return T*1.0/(Z*(C+T));
+
 		}
 		return emissionProbabilities.get(state).get(word);
 	}
@@ -106,6 +113,24 @@ public class HiddenMarkovModel {
 			for (String observation: emissionCount.get(i).keySet()) {
 				int occurence = emissionCount.get(i).get(observation);
 				emissionProbabilities.get(i).put(observation, occurence*1.0/sum);
+			}
+		}
+	}
+
+	public void calculateEmissionProbWittenBell() {
+		emissionProbabilities = new ArrayList<HashMap<String, Double>>();
+		for (int i = 0; i < numTags; i++) {
+			emissionProbabilities.add(new HashMap<String, Double>());
+		}
+		for (int i=0; i<tags.length; i++) {
+			int sum = 0;
+			for (String observation: emissionCount.get(i).keySet()) {
+				sum += emissionCount.get(i).get(observation);
+			}
+			emissionSum[i] = sum;
+			for (String observation: emissionCount.get(i).keySet()) {
+				int occurence = emissionCount.get(i).get(observation);
+				emissionProbabilities.get(i).put(observation, occurence*1.0/(sum + emissionCount.get(i).size()));
 			}
 		}
 	}
