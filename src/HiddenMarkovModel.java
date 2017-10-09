@@ -33,7 +33,7 @@ public class HiddenMarkovModel {
 		}
 	}
 
-	private int index(String tag) {
+	public int index(String tag) {
 		return nodeIndex.get(tag);
 	}
 
@@ -46,6 +46,7 @@ public class HiddenMarkovModel {
 	}
 
 	private double getEmissionProbability(int state, String word) {
+		if (state==0 || state== numTags-1) return 0;
 		if (!emissionProbabilities.get(state).containsKey(word)) {
 			// TODO: unknown word
 			return 0;

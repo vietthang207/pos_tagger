@@ -19,6 +19,7 @@ public class DataReader {
 	}
 
 	public void close() throws IOException {
+		bufferedReader.close();
 		fileReader.close();
 	}
 }
