@@ -1,8 +1,9 @@
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.ArrayList;
+import java.io.Serializable;
 
-public class HiddenMarkovModel {
+public class HiddenMarkovModel implements Serializable {
 	private HashMap<String, Integer> nodeIndex;
 	private String[] tags;
 	private int numTags;

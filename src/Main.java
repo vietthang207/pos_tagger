@@ -1,34 +1,76 @@
 import java.io.IOException;
 import java.util.HashSet;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.io.PrintWriter;
 
 public class Main {
-	public static void main(String args[]) throws IOException {
-		//getAllTagsFromTrainingSet();
-		//System.out.println(Util.getWordAndTag("blabla/BLAM")[0]);
-		// System.out.println(Math.log(0.0) + 10000);
-		HiddenMarkovModel model = trainOn("sents.train");
-		// model.calculateEmissionProbNaive();
+	public static void main(String args[]) throws IOException, ClassNotFoundException {
+		if (args.length >= 1) {
+			if (args[0].equals("build_tagger") && args.length == 4) {
+				buildTagger(args[1], args[2], args[3]);
+				return;
+			}
+			else if (args[0].equals("run_tagger") && args.length == 4) {
+				runTagger(args[1], args[2], args[3]);
+				return;
+			}	
+		}
+		System.out.println("wrong command");
+	}
+
+	private static void buildTagger(String trainingFile, String devFile, String outputModelFile) throws IOException {
+		trainWithCrossValidationOn(trainingFile);
+		HiddenMarkovModel model = trainOn(trainingFile);
 		model.calculateEmissionProbWittenBell();
-		// model.calculateTransitionProbNaive();
 		model.calculateTransitionProbWittenBell();
 		model.calculateCapitalProbability();
 		System.out.println("finish calculating emission and transition prob");
-		System.out.println("Training accuracy: " + getAccuracyOnFile(model, "sents.train"));
-		System.out.println("Accuracy on dev set: " + getAccuracyOnFile(model, "sents.devt"));
+		System.out.println("Training accuracy: " + getAccuracyOnFile(model, trainingFile));
+		System.out.println("Accuracy on dev set: " + getAccuracyOnFile(model, devFile));
 		double[][] confusionMat = getConfusionTableOnFile(model, "sents.devt");
 		printConfusionMatrix(confusionMat);
-		// String[] res = model.runViterbi(Util.tokenizeLine("I am all alone , the rooms are getting smaller ."));
-		// for (String s: res) {
-		// 	System.out.print(s + " ");
-		// }
-		// String[] words = Util.tokenizeLine("The luxury auto maker last year sold 1,214 cars in the U.S.");
-		// String[] tags = Util.tokenizeLine("DT NN NN NN JJ NN VBD CD NNS IN DT NNP");
-		// System.out.println(model.calculateLikelihood(words, tags));
+		saveModel(model, outputModelFile);
+	}
+
+	private static void runTagger(String inputFile, String modelFile, String outputFile) throws IOException, ClassNotFoundException {
+		HiddenMarkovModel model = loadModel(modelFile);
+		DataReader dataReader = new DataReader(inputFile);
+		PrintWriter writer = new PrintWriter(outputFile);
+		String line;
+		int lineCounter = 0;
+		while ( (line = dataReader.nextLine()) != null) {
+			String[] words = line.split(" ");
+			String[] tags = model.runViterbi(words);
+			String res = "";
+			for (int i=0; i<words.length; i++) {
+				res += words[i] + "/" + tags[i] + " ";
+			}
+			writer.println(res);
+		}
+		writer.close();
+		dataReader.close();
+	}
+
+	private static void saveModel(HiddenMarkovModel model, String fileName) throws IOException {
+		FileOutputStream fos = new FileOutputStream(fileName);
+		ObjectOutputStream oos = new ObjectOutputStream(fos);
+		oos.writeObject(model);
+	}
+
+	private static HiddenMarkovModel loadModel(String fileName) throws IOException, ClassNotFoundException {
+		FileInputStream fis = new FileInputStream(fileName);
+		ObjectInputStream ois = new ObjectInputStream(fis);
+		return (HiddenMarkovModel) ois.readObject();
 	}
 
 	private static HiddenMarkovModel trainOn(String fileName) throws IOException {
 		HiddenMarkovModel model = new HiddenMarkovModel();
-		DataReader dataReader = new DataReader("sents.train");
+		DataReader dataReader = new DataReader(fileName);
 		String line;
 		int lineCounter = 0;
 		while ( (line = dataReader.nextLine()) != null) {
@@ -38,6 +80,70 @@ public class Main {
 		dataReader.close();
 		System.out.println("finish training on " + lineCounter + " lines.");
 		return model;
+	}
+
+	private static void trainWithCrossValidationOn(String fileName) throws IOException {
+		ArrayList<Integer> randomArray = new ArrayList<Integer>(Constant.numLines);
+		for (int i=0; i<Constant.numLines; i++) {
+			randomArray.add(i);
+		}
+		ArrayList<Double> validationError = new ArrayList<Double>();
+		for (int iter=0; iter<10; iter++) {
+			System.out.println("Iteration " + (iter + 1));
+			HiddenMarkovModel model = new HiddenMarkovModel();
+			Collections.shuffle(randomArray);
+			// N/10 first element will be put to validation set
+			HashSet<Integer> validationIndex = new HashSet<Integer>();
+			for (int i=0; i<Constant.numLines/10; i++) {
+				validationIndex.add(randomArray.get(i));
+			}
+
+			DataReader dataReader = new DataReader(fileName);
+			String line;
+			int lineCounter = 0;
+			while ( (line = dataReader.nextLine()) != null) {
+				// skip if line in validation set
+				if (validationIndex.contains(lineCounter)) {
+					lineCounter++;
+					continue;
+				}
+				model.processTrainingSample(line);
+				lineCounter ++ ;
+			}
+			dataReader.close();
+			model.calculateEmissionProbWittenBell();
+			model.calculateTransitionProbWittenBell();
+			model.calculateCapitalProbability();
+			System.out.println("Finish training on " + lineCounter + " lines.");
+
+			dataReader = new DataReader(fileName);
+			lineCounter = 0;
+			int wordCounter = 0;
+			int correctCounter = 0;
+			while ( (line = dataReader.nextLine()) != null) {
+				if (validationIndex.contains(lineCounter)) {
+					lineCounter ++;
+					continue;
+				}
+				lineCounter ++;
+				String[] words = Util.getWords(line);
+				String[] tags = Util.getTags(line);
+				String[] predictedTags = model.runViterbi(words);
+				for (int i=0; i<words.length; i++) {
+					wordCounter ++;
+					if (tags[i].equals(predictedTags[i])) correctCounter ++;
+				}
+			}
+			dataReader.close();
+			validationError.add(correctCounter*100.0/wordCounter);
+			System.out.println("Validation accuracy " + correctCounter*100.0/wordCounter);
+		}
+		double cvError = 0;
+		for (double d: validationError) {
+			cvError += d;
+		}
+		cvError /= validationError.size();
+		System.out.println("Cross validation accuracy " + cvError);
 	}
 
 	private static double getAccuracyOnFile(HiddenMarkovModel model, String fileName) throws IOException {
