@@ -18,13 +18,16 @@ public class Main {
 			else if (args[0].equals("run_tagger") && args.length == 4) {
 				runTagger(args[1], args[2], args[3]);
 				return;
+			}
+			else if (args[0].equals("cross_validation") && args.length == 4) {
+				trainWithCrossValidationOn(args[1]);
+				return;
 			}	
 		}
 		System.out.println("wrong command");
 	}
 
 	private static void buildTagger(String trainingFile, String devFile, String outputModelFile) throws IOException {
-		trainWithCrossValidationOn(trainingFile);
 		HiddenMarkovModel model = trainOn(trainingFile);
 		model.calculateEmissionProbWittenBell();
 		model.calculateTransitionProbWittenBell();
